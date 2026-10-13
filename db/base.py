@@ -124,6 +124,28 @@ def _ensure_lead_columns(conn) -> None:
         pass
 
 
+def _ensure_llm_call_log_columns(conn) -> None:
+    """Миграция недостающих колонок в llm_call_log для существующих SQLite-БД.
+
+    create_all не добавляет новые колонки в существующие таблицы.
+    Если llm_call_log была создана раньше, чем добавили owner_tg_id/operation,
+    эти колонки отсутствуют и check_llm_budget падает с OperationalError.
+    """
+    from sqlalchemy import text
+
+    from db.models import LLMCallLog
+
+    existing = {row[1] for row in conn.execute(text("PRAGMA table_info(llm_call_log)"))}
+    if not existing:
+        return
+
+    for column in LLMCallLog.__table__.columns:
+        if column.name in existing:
+            continue
+        ddl_type = column.type.compile(dialect=conn.dialect)
+        conn.execute(text(f"ALTER TABLE llm_call_log ADD COLUMN {column.name} {ddl_type}"))
+
+
 async def init_db(target_engine: AsyncEngine | None = None) -> None:
     """Создаёт таблицы, если их нет; для SQLite досоздаёт недостающие колонки.
 
@@ -139,6 +161,7 @@ async def init_db(target_engine: AsyncEngine | None = None) -> None:
         await conn.run_sync(Base.metadata.create_all)
         if eng.dialect.name == "sqlite":
             await conn.run_sync(_ensure_lead_columns)
+            await conn.run_sync(_ensure_llm_call_log_columns)
 
 
 async def verify_schema(target_engine: AsyncEngine | None = None) -> None:

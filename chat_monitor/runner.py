@@ -156,6 +156,27 @@ async def load_runtime_config() -> ChatMonitorConfig:
         return repo.chat_monitor_settings_to_config(row)
 
 
+# --- Cache for runtime config to avoid DB hit on every single message ---
+# On active chats (29+ chats, hundreds of msgs/min) a DB query per message
+# creates unacceptable latency and SQLite lock contention. TTL=30s balances
+# freshness (bot UI changes visible within 30s) with performance.
+_config_cache: tuple[ChatMonitorConfig, float] | None = None
+_CONFIG_CACHE_TTL = 30.0  # seconds
+
+
+async def get_cached_runtime_config() -> ChatMonitorConfig:
+    """Returns cached config or refreshes from DB if stale (TTL=30s)."""
+    global _config_cache
+    import time as _time
+
+    now = _time.time()
+    if _config_cache is not None and (now - _config_cache[1]) < _CONFIG_CACHE_TTL:
+        return _config_cache[0]
+    config = await load_runtime_config()
+    _config_cache = (config, now)
+    return config
+
+
 async def event_matches_chat_refs(event, chat_refs: list[str]) -> bool:
     chat_id = getattr(event, "chat_id", None)
     chat = await event.get_chat()
@@ -329,7 +350,7 @@ async def run_chat_monitor(bot, session_factory_arg) -> None:
                     return
                 if sender is not None and getattr(sender, "bot", False):
                     return
-                config = await load_runtime_config()
+                config = await get_cached_runtime_config()
                 if not config.is_enabled or not config.chats:
                     return
                 if not await event_matches_chat_refs(event, config.chats):
@@ -459,7 +480,7 @@ async def run() -> None:
     @client.on(events.NewMessage())
     async def on_new_message(event) -> None:
         try:
-            config = await load_runtime_config()
+            config = await get_cached_runtime_config()
             if not config.is_enabled or not config.chats:
                 return
             if not await event_matches_chat_refs(event, config.chats):
