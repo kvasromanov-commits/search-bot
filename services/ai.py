@@ -2,8 +2,10 @@
 
 Провайдер выбирается в .env (settings.llm_provider):
   * "anthropic"  — Anthropic Claude SDK (был исходным);
-  * "openrouter" — любой OpenAI-совместимый эндпоинт (OpenRouter/Moonshot/…),
-    с кастомным base_url и моделью из .env.
+  * "openrouter" | "groq" | "openai" | "moonshot" | "openai_compat" — любой
+    OpenAI-совместимый эндпоинт (OpenRouter/Groq/Moonshot/…) с кастомным
+    base_url и моделью из .env. Для бесплатного Groq:
+    LLM_BASE_URL=https://api.groq.com/openai/v1.
 
 Абстракция: LLMClient с методами analyze_company()/generate_messages().
 Конкретные реализации (AnthropicClient, OpenAICompatClient) отличаются только
@@ -377,7 +379,7 @@ class AnthropicClient(LLMClient):
 
 
 class OpenAICompatClient(LLMClient):
-    """OpenAI-совместимый провайдер (OpenRouter, Moonshot, локальный сервер)."""
+    """OpenAI-совместимый провайдер (OpenRouter, Groq, Moonshot, локальный сервер)."""
 
     def __init__(self, sdk_client=None) -> None:
         if sdk_client is not None:
@@ -450,7 +452,7 @@ def _get_or_create_client() -> LLMClient:
         provider = (settings.llm_provider or "anthropic").lower()
         if provider == "anthropic":
             _llm_client_instance = AnthropicClient()
-        elif provider in ("openrouter", "openai", "moonshot", "openai_compat"):
+        elif provider in ("openrouter", "openai", "groq", "moonshot", "openai_compat"):
             _llm_client_instance = OpenAICompatClient()
         else:
             raise AIError(f"Unknown LLM provider: {settings.llm_provider!r}")

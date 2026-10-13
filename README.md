@@ -60,10 +60,12 @@ pip install -r requirements-lock.txt
 copy .env.example .env
 :: впиши в .env:
 ::   BOT_TOKEN=...          (от @BotFather)
-::   LLM_PROVIDER=openrouter (бесплатно) или anthropic
+::   LLM_PROVIDER=openrouter (бесплатно) | groq (бесплатно) | anthropic (платно)
 ::   LLM_API_KEY=...         (ключ выбранного провайдера)
 ::   LLM_MODEL=minimax/minimax-m3:free   (для openrouter; стабильна на free-tier, без 429)
 ::   (если появляется 429 у выбранной модели — переключись на minimax-m3:free)
+:: Groq (бесплатно): LLM_PROVIDER=groq, LLM_BASE_URL=https://api.groq.com/openai/v1,
+::   LLM_MODEL=llama-3.3-70b-versatile, LLM_API_KEY=gsk_... (https://console.groq.com/keys)
 :: чтобы вернуться на Anthropic: LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY
 
 :: 4. Старт (таблицы SQLite создадутся автоматически)

@@ -7,7 +7,9 @@
 LLM-провайдер переключается через .env (LLM_PROVIDER):
   * "anthropic"  — Anthropic Claude SDK (платный, был исходным);
   * "openrouter" — любой OpenAI-совместимый эндпоинт (OpenRouter, Moonshot,
-    локальный сервер и т.п.). Модель/URL/ключ задаются LLM_* переменными.
+    локальный сервер и т.п.). Модель/URL/ключ задаются LLM_* переменными;
+  * "groq"       — бесплатный OpenAI-совместимый Groq
+    (LLM_BASE_URL=https://api.groq.com/openai/v1).
 Anthropic остаётся доступным всегда — это настройка, а не необратимая миграция.
 """
 
@@ -31,15 +33,16 @@ class Settings(BaseSettings):
     secrets_rotated_at: str = ""
 
     # --- Выбор LLM-провайдера ---
-    # "anthropic" | "openrouter" (или любой другой OpenAI-совместимый провайдер)
+    # "anthropic" | "openrouter" | "groq" (или любой другой OpenAI-совместимый провайдер)
     llm_provider: str = "anthropic"
-    # Имя модели у выбранного провайдера. Для openrouter, напр. moonshotai/kimi-k2.6:free.
+    # Имя модели у выбранного провайдера. Для openrouter, напр. moonshotai/kimi-k2.6:free;
+    # для groq, напр. llama-3.3-70b-versatile.
     # Намеренно без дефолта-хардкода конкретной модели — задаётся в .env.
     llm_model: str = ""
     # base_url для OpenAI-совместимого провайдера (для anthropic не используется).
     llm_base_url: str = "https://openrouter.ai/api/v1"
     # Comma-separated HTTPS hosts permitted for OpenAI-compatible providers in production.
-    llm_allowed_hosts: str = "openrouter.ai,api.openai.com"
+    llm_allowed_hosts: str = "openrouter.ai,api.openai.com,api.groq.com"
     # Ключ выбранного провайдера. Для anthropic, если пусто, берётся ANTHROPIC_API_KEY.
     llm_api_key: str = ""
     # Таймаут одного запроса к LLM, секунды. Бесплатные модели отвечают

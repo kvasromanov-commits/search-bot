@@ -122,6 +122,29 @@ def test_get_client_openrouter_uses_base_url(monkeypatch):
     assert captured["api_key"] == "or-test-key"
 
 
+def test_get_client_groq_uses_groq_base_url(monkeypatch):
+    """LLM_PROVIDER=groq — бесплатный OpenAI-совместимый эндпоинт Groq."""
+    monkeypatch.setattr(settings, "llm_provider", "groq")
+    monkeypatch.setattr(settings, "llm_api_key", "gsk-test-key")
+    monkeypatch.setattr(settings, "llm_base_url", "https://api.groq.com/openai/v1")
+    monkeypatch.setattr(settings, "llm_model", "llama-3.3-70b-versatile")
+
+    captured = {}
+
+    def fake_ctor(api_key=None, base_url=None, timeout=None):
+        captured["api_key"] = api_key
+        captured["base_url"] = base_url
+        return FakeOpenAISDK(base_url=base_url, api_key=api_key)
+
+    import openai
+    monkeypatch.setattr(openai, "AsyncOpenAI", fake_ctor)
+
+    client = get_client()
+    assert isinstance(client, OpenAICompatClient)
+    assert captured["base_url"] == "https://api.groq.com/openai/v1"
+    assert captured["api_key"] == "gsk-test-key"
+
+
 def test_get_client_unknown_provider(monkeypatch):
     monkeypatch.setattr(settings, "llm_provider", "gopher-mail")
     with pytest.raises(AIError, match="Unknown LLM provider"):
